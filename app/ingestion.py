@@ -6,7 +6,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import Optional, Tuple
-from git import Repo, GitCommandError, InvalidGitRepositoryError
+from git import Repo, GitCommandError
 
 # Import utilities
 from .utilities import (
