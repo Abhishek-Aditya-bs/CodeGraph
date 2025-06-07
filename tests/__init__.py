@@ -31,6 +31,14 @@ from .test_knowledge_graph_mock import (
     run_all_mock_tests
 )
 
+from .test_openai_config import (
+    test_openai_api_key_config,
+    test_openai_api_key_environment,
+    test_openai_api_curl,
+    test_langchain_openai_integration,
+    run_all_openai_tests
+)
+
 __all__ = [
     # Ingestion tests
     'test_repository_cloning',
@@ -56,5 +64,12 @@ __all__ = [
     'test_knowledge_graph_structure',
     'test_knowledge_graph_imports',
     'test_knowledge_graph_configuration',
-    'run_all_mock_tests'
+    'run_all_mock_tests',
+    
+    # OpenAI configuration tests
+    'test_openai_api_key_config',
+    'test_openai_api_key_environment',
+    'test_openai_api_curl',
+    'test_langchain_openai_integration',
+    'run_all_openai_tests'
 ] 
