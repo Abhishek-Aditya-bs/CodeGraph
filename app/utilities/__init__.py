@@ -22,6 +22,13 @@ from .git_utils import (
     get_repository_info
 )
 
+from .neo4j_utils import (
+    check_neo4j_health,
+    clear_database,
+    get_database_statistics,
+    create_constraints_and_indexes
+)
+
 __all__ = [
     # File utilities
     'format_file_size',
@@ -39,5 +46,11 @@ __all__ = [
     # Git utilities
     'is_valid_repo_url',
     'extract_repo_name',
-    'get_repository_info'
+    'get_repository_info',
+    
+    # Neo4j utilities
+    'check_neo4j_health',
+    'clear_database',
+    'get_database_statistics',
+    'create_constraints_and_indexes'
 ] 
