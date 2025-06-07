@@ -5,7 +5,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from git import Repo, GitCommandError
 
 # Import utilities
@@ -28,6 +28,60 @@ from .utilities import (
     extract_repo_name,
     get_repository_info
 )
+
+
+def detect_language_from_extension(extension: str) -> str:
+    """
+    Detect programming language from file extension
+    
+    Args:
+        extension: File extension (e.g., '.py', '.java')
+        
+    Returns:
+        str: Programming language name
+    """
+    extension = extension.lower().lstrip('.')
+    
+    language_map = {
+        'py': 'python',
+        'java': 'java',
+        'js': 'javascript',
+        'jsx': 'javascript',
+        'ts': 'typescript',
+        'tsx': 'typescript',
+        'cpp': 'cpp',
+        'cc': 'cpp',
+        'cxx': 'cpp',
+        'c': 'c',
+        'h': 'c',
+        'hpp': 'cpp',
+        'cs': 'csharp',
+        'rb': 'ruby',
+        'go': 'go',
+        'rs': 'rust',
+        'php': 'php',
+        'swift': 'swift',
+        'kt': 'kotlin',
+        'scala': 'scala',
+        'r': 'r',
+        'sql': 'sql',
+        'sh': 'shell',
+        'bash': 'shell',
+        'zsh': 'shell',
+        'ps1': 'powershell',
+        'html': 'html',
+        'css': 'css',
+        'scss': 'scss',
+        'sass': 'sass',
+        'xml': 'xml',
+        'json': 'json',
+        'yaml': 'yaml',
+        'yml': 'yaml',
+        'md': 'markdown',
+        'dockerfile': 'dockerfile'
+    }
+    
+    return language_map.get(extension, 'unknown')
 
 
 def clone_repository(repo_url: str, target_dir: Optional[str] = None, use_project_dir: bool = True) -> Tuple[bool, str, Optional[str]]:
@@ -430,6 +484,15 @@ def parse_code_chunks(codebase_path: str, chunk_size: int = 500, chunk_overlap: 
             chunk.metadata['chunk_id'] = i
             chunk.metadata['chunk_size'] = len(chunk.page_content)
             chunk.metadata['codebase_path'] = codebase_path
+            
+            # Fix metadata key mismatch - standardize to what graph_builder expects
+            chunk.metadata['file_path'] = chunk.metadata.get('source', 'unknown')
+            chunk.metadata['language'] = detect_language_from_extension(chunk.metadata.get('file_extension', ''))
+            
+            # Add line number tracking for chunks (approximate)
+            content_lines = chunk.page_content.split('\n')
+            chunk.metadata['start_line'] = 1  # Will be improved with better chunking
+            chunk.metadata['end_line'] = len(content_lines)
         
         # Calculate statistics
         total_chunks = len(chunked_documents)

@@ -12,6 +12,7 @@ tests/
 ├── test_knowledge_graph_mock.py   # Mock knowledge graph tests (no API)
 ├── test_openai_config.py          # OpenAI API configuration tests
 ├── test_knowledge_graph_generation.py # Knowledge graph generation tests (Java codebases)
+├── test_vector_index.py           # Vector index creation and search tests (Task 3.3)
 ├── test_cleanup.py                # Database cleanup (runs LAST)
 └── run_tests.py                   # Main test runner
 ```
@@ -30,7 +31,8 @@ This will:
 3. ✅ Run knowledge graph mock tests
 4. ✅ Run OpenAI configuration tests
 5. ✅ Run comprehensive knowledge graph generation tests
-6. 🧹 **Clean the database at the end**
+6. ✅ Run vector index creation and search tests
+7. 🧹 **Clean the database at the end**
 
 ### **Option 2: Run Individual Test Suites**
 
@@ -64,13 +66,20 @@ python tests/test_openai_config.py
 
 **Output**: Rich knowledge graph with 30+ nodes and relationships
 
-### **2. Database Cleanup Test** (`test_cleanup.py`)
+### **2. Vector Index Tests** (`test_vector_index.py`) - **Task 3.3**
+- **Test 1**: Create vector index with OpenAI embeddings (text-embedding-3-large)
+- **Test 2**: Test vector similarity search functionality
+- **Test 3**: Verify rich metadata storage (file paths, line numbers, languages)
+
+**Output**: Vector index with embeddings, CodeChunk/File nodes, search results
+
+### **3. Database Cleanup Test** (`test_cleanup.py`)
 - Shows current database statistics
 - Clears ALL data from Neo4j database
 - Verifies cleanup was successful
 - **⚠️ WARNING**: This deletes everything!
 
-### **3. Other Tests**
+### **4. Other Tests**
 - **Ingestion**: Tests code parsing and chunking
 - **Neo4j**: Tests database connection
 - **Mock**: Tests knowledge graph structure without API calls

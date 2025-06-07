@@ -98,6 +98,8 @@ LLM_MODEL=gpt-4o
 3. Wait for the system to process and build the knowledge graph
 4. Query your codebase using natural language
 
+For exploring generated knowledge graphs, see the [Neo4j Browser Guide](docs/NEO4J_BROWSER_GUIDE.md).
+
 ## Development
 
 ### Project Structure
@@ -111,6 +113,10 @@ Code-Graph/
 │   ├── graph_builder.py     # Knowledge graph and embeddings
 │   ├── query_processor.py   # GraphRAG query handling
 │   └── config.py            # Configuration management
+├── docs/                    # Documentation guides
+│   ├── README.md            # Documentation index
+│   ├── TESTS_GUIDE.md       # Testing guide
+│   └── NEO4J_BROWSER_GUIDE.md # Neo4j exploration guide
 ├── scripts/
 │   └── deploy_aws.sh        # AWS deployment script
 ├── Dockerfile               # Docker configuration
@@ -122,8 +128,14 @@ Code-Graph/
 
 ### Running Tests
 
+See the comprehensive [Tests Guide](docs/TESTS_GUIDE.md) for detailed testing instructions.
+
 ```bash
-pytest
+# Run all tests
+python tests/run_tests.py
+
+# Run specific test
+python tests/test_knowledge_graph_generation.py
 ```
 
 ### Code Formatting

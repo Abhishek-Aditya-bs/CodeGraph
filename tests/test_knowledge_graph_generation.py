@@ -324,7 +324,7 @@ def run_all_tests():
     if passed == total:
         print(f"🎉 ALL TESTS COMPLETED SUCCESSFULLY!")
         print(f"🌐 Open http://localhost:7474 to explore your knowledge graph!")
-        print(f"💡 Use the queries from EXECUTION_GUIDE.md for exploration")
+        print(f"💡 Use the queries from docs/NEO4J_BROWSER_GUIDE.md for exploration")
     else:
         print(f"⚠️ Some tests failed. Check the output above for details.")
     
