@@ -1,0 +1,32 @@
+# Code Graph - Python Dependencies
+# Core dependencies for GraphRAG system
+
+# Database and Graph
+neo4j>=5.17.0
+neo4j-graphrag[openai]>=1.6.1
+
+# Web Framework
+streamlit>=1.29.0
+
+# LLM and AI
+langchain>=0.3.0
+langchain-openai>=0.2.0
+openai>=1.50.0
+
+# Git Integration
+GitPython>=3.1.40
+
+# Environment Management
+python-dotenv>=1.0.0
+
+# Data Processing
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Optional: Graph Visualization
+# yfiles-jupyter-graphs==1.6.0
+
+# Development and Testing
+pytest==7.4.3
+black==23.12.1
+flake8==6.1.0 
