@@ -16,6 +16,21 @@ from .test_neo4j import (
     run_all_neo4j_tests
 )
 
+from .test_knowledge_graph import (
+    test_knowledge_graph_generation_small_sample,
+    test_knowledge_graph_with_spring_petclinic,
+    test_knowledge_graph_statistics,
+    test_knowledge_graph_clear,
+    run_all_knowledge_graph_tests
+)
+
+from .test_knowledge_graph_mock import (
+    test_knowledge_graph_structure,
+    test_knowledge_graph_imports,
+    test_knowledge_graph_configuration,
+    run_all_mock_tests
+)
+
 __all__ = [
     # Ingestion tests
     'test_repository_cloning',
@@ -28,5 +43,18 @@ __all__ = [
     'test_database_statistics',
     'test_connection_error_handling',
     'test_connection_lifecycle',
-    'run_all_neo4j_tests'
+    'run_all_neo4j_tests',
+    
+    # Knowledge Graph tests
+    'test_knowledge_graph_generation_small_sample',
+    'test_knowledge_graph_with_spring_petclinic',
+    'test_knowledge_graph_statistics',
+    'test_knowledge_graph_clear',
+    'run_all_knowledge_graph_tests',
+    
+    # Knowledge Graph mock tests
+    'test_knowledge_graph_structure',
+    'test_knowledge_graph_imports',
+    'test_knowledge_graph_configuration',
+    'run_all_mock_tests'
 ] 

@@ -139,24 +139,27 @@ class GraphBuilder:
                 # Get node and relationship counts
                 node_result = session.run("MATCH (n) RETURN count(n) as node_count")
                 node_record = node_result.single()
-                info["node_count"] = node_record["node_count"] if node_record else 0
+                info["total_nodes"] = node_record["node_count"] if node_record else 0
                 
                 rel_result = session.run("MATCH ()-[r]->() RETURN count(r) as rel_count")
                 rel_record = rel_result.single()
-                info["relationship_count"] = rel_record["rel_count"] if rel_record else 0
+                info["total_relationships"] = rel_record["rel_count"] if rel_record else 0
                 
-                # Check for APOC procedures
-                apoc_result = session.run("CALL dbms.procedures() YIELD name WHERE name STARTS WITH 'apoc' RETURN count(name) as apoc_count")
-                apoc_record = apoc_result.single()
-                info["apoc_procedures"] = apoc_record["apoc_count"] if apoc_record else 0
+                # Check for APOC procedures (with fallback)
+                try:
+                    apoc_result = session.run("CALL dbms.procedures() YIELD name WHERE name STARTS WITH 'apoc' RETURN count(name) as apoc_count")
+                    apoc_record = apoc_result.single()
+                    info["apoc_procedures"] = apoc_record["apoc_count"] if apoc_record else 0
+                except:
+                    info["apoc_procedures"] = 0
             
             success_message = (
                 f"📊 Neo4j Database Information:\n"
                 f"🏷️ Version: {info.get('version', 'Unknown')}\n"
                 f"📦 Edition: {info.get('edition', 'Unknown')}\n"
                 f"🗄️ Database: {info.get('database_name', 'Unknown')}\n"
-                f"🔵 Nodes: {info.get('node_count', 0)}\n"
-                f"🔗 Relationships: {info.get('relationship_count', 0)}\n"
+                f"🔵 Nodes: {info.get('total_nodes', 0)}\n"
+                f"🔗 Relationships: {info.get('total_relationships', 0)}\n"
                 f"🔧 APOC Procedures: {info.get('apoc_procedures', 0)}"
             )
             
@@ -185,18 +188,127 @@ class GraphBuilder:
         """Context manager exit - automatically close connection"""
         self.close_connection()
     
-    def generate_knowledge_graph(self, documents: list) -> bool:
+    def generate_knowledge_graph(self, documents: list) -> Tuple[bool, str]:
         """
-        Generate knowledge graph from code documents
+        Generate knowledge graph from code documents using LLMGraphTransformer
         
         Args:
-            documents: List of chunked Document objects
+            documents: List of chunked Document objects from parse_code_chunks
             
         Returns:
-            bool: True if successful, False otherwise
+            Tuple[bool, str]: (success, message)
         """
-        # TODO: Implement knowledge graph generation using LLMGraphTransformer
-        pass
+        try:
+            if not self.is_connected or not self.driver:
+                return False, "❌ Not connected to Neo4j. Please connect first."
+            
+            if not documents:
+                return False, "❌ No documents provided for knowledge graph generation."
+            
+            logger.info(f"🧠 Starting knowledge graph generation for {len(documents)} documents")
+            
+            # Import required libraries
+            from langchain_openai import ChatOpenAI
+            from langchain_experimental.graph_transformers import LLMGraphTransformer
+            from langchain_neo4j import Neo4jGraph
+            
+            # Initialize OpenAI LLM with GPT-4o-mini
+            llm = ChatOpenAI(
+                model="gpt-4o-mini",
+                temperature=0,  # Deterministic output for consistent entity extraction
+                openai_api_key=self.config.OPENAI_API_KEY
+            )
+            
+            # Initialize Neo4j graph connection
+            neo4j_graph = Neo4jGraph(
+                url=self.config.NEO4J_URI,
+                username=self.config.NEO4J_USERNAME,
+                password=self.config.NEO4J_PASSWORD
+            )
+            
+            # Configure LLMGraphTransformer with code-specific schema
+            graph_transformer = LLMGraphTransformer(
+                llm=llm,
+                allowed_nodes=["File", "Function", "Class", "Module", "Package"],
+                allowed_relationships=["CONTAINS", "CALLS", "IMPORTS", "INHERITS", "IMPLEMENTS", "DEPENDS_ON"],
+                strict_mode=False  # Allow flexible entity extraction
+            )
+            
+            logger.info("🔄 Transforming documents to graph documents...")
+            
+            # Transform documents to graph documents
+            graph_documents = graph_transformer.convert_to_graph_documents(documents)
+            
+            if not graph_documents:
+                return False, "❌ No graph documents generated from the provided documents."
+            
+            logger.info(f"📊 Generated {len(graph_documents)} graph documents")
+            
+            # Store graph documents in Neo4j
+            logger.info("💾 Storing knowledge graph in Neo4j...")
+            neo4j_graph.add_graph_documents(graph_documents)
+            
+            # Get statistics about what was created
+            stats_success, stats_message, stats = self._get_graph_creation_stats()
+            
+            success_message = (
+                f"✅ Knowledge graph generated successfully!\n"
+                f"📄 Documents processed: {len(documents)}\n"
+                f"🔄 Graph documents created: {len(graph_documents)}\n"
+                f"💾 Stored in Neo4j database\n"
+                f"{stats_message if stats_success else 'Statistics unavailable'}"
+            )
+            
+            logger.info("✅ Knowledge graph generation completed successfully")
+            return True, success_message
+            
+        except ImportError as e:
+            error_msg = f"❌ Missing required dependency: {str(e)}\n💡 Tip: Install with 'pip install langchain-openai langchain-experimental langchain-community'"
+            logger.error(error_msg)
+            return False, error_msg
+            
+        except Exception as e:
+            error_msg = f"❌ Error generating knowledge graph: {str(e)}"
+            logger.error(error_msg)
+            return False, error_msg
+    
+
+    
+    def _get_graph_creation_stats(self) -> Tuple[bool, str, dict]:
+        """
+        Get statistics about the created knowledge graph
+        
+        Returns:
+            Tuple[bool, str, dict]: (success, message, stats)
+        """
+        try:
+            from app.utilities.neo4j_utils import get_database_statistics
+            return get_database_statistics(self.driver)
+        except Exception as e:
+            return False, f"Error getting stats: {str(e)}", {}
+    
+    def clear_knowledge_graph(self, confirm: bool = False) -> Tuple[bool, str]:
+        """
+        Clear the knowledge graph from Neo4j
+        WARNING: This will delete all nodes and relationships!
+        
+        Args:
+            confirm: Must be True to actually perform the deletion
+            
+        Returns:
+            Tuple[bool, str]: (success, message)
+        """
+        try:
+            if not self.is_connected or not self.driver:
+                return False, "❌ Not connected to Neo4j. Please connect first."
+            
+            from app.utilities.neo4j_utils import clear_database
+            return clear_database(self.driver, confirm=confirm)
+            
+        except Exception as e:
+            error_msg = f"❌ Error clearing knowledge graph: {str(e)}"
+            logger.error(error_msg)
+            return False, error_msg
     
     def create_vector_index(self, documents: list) -> bool:
         """

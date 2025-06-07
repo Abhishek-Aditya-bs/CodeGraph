@@ -91,60 +91,45 @@ def get_database_statistics(driver: Driver) -> Tuple[bool, str, Dict[str, Any]]:
         stats = {}
         
         with driver.session() as session:
-            # Node counts by label
-            label_result = session.run("""
-                CALL db.labels() YIELD label
-                CALL {
-                    WITH label
-                    CALL apoc.cypher.run('MATCH (n:' + label + ') RETURN count(n) as count', {})
-                    YIELD value
-                    RETURN label as labelName, value.count as count
-                }
-                RETURN labelName, count
-            """)
-            
-            node_labels = {}
-            total_nodes = 0
-            for record in label_result:
-                label = record["labelName"]
-                count = record["count"]
-                node_labels[label] = count
-                total_nodes += count
-            
-            stats["node_labels"] = node_labels
+            # Simple node count
+            node_result = session.run("MATCH (n) RETURN count(n) as total_nodes")
+            total_nodes = node_result.single()["total_nodes"]
             stats["total_nodes"] = total_nodes
             
-            # Relationship counts by type
-            rel_result = session.run("""
-                CALL db.relationshipTypes() YIELD relationshipType
-                CALL {
-                    WITH relationshipType
-                    CALL apoc.cypher.run('MATCH ()-[r:' + relationshipType + ']->() RETURN count(r) as count', {})
-                    YIELD value
-                    RETURN relationshipType as relTypeName, value.count as count
-                }
-                RETURN relTypeName, count
-            """)
+            # Simple relationship count
+            rel_result = session.run("MATCH ()-[r]->() RETURN count(r) as total_relationships")
+            total_relationships = rel_result.single()["total_relationships"]
+            stats["total_relationships"] = total_relationships
             
-            rel_types = {}
-            total_rels = 0
-            for record in rel_result:
-                rel_type = record["relTypeName"]
-                count = record["count"]
-                rel_types[rel_type] = count
-                total_rels += count
-            
-            stats["relationship_types"] = rel_types
-            stats["total_relationships"] = total_rels
-            
-            # Database size (if available)
+            # Try to get labels (fallback if not available)
             try:
-                size_result = session.run("CALL dbms.queryJmx('org.neo4j:instance=kernel#0,name=Store file sizes') YIELD attributes")
-                size_record = size_result.single()
-                if size_record:
-                    stats["store_size"] = size_record.get("attributes", {})
-            except:
-                stats["store_size"] = "Not available"
+                label_result = session.run("CALL db.labels() YIELD label RETURN collect(label) as labels")
+                labels = label_result.single()["labels"]
+                stats["node_labels"] = {label: 0 for label in labels}  # Placeholder counts
+                
+                # Get actual counts for each label
+                for label in labels:
+                    count_result = session.run(f"MATCH (n:{label}) RETURN count(n) as count")
+                    count = count_result.single()["count"]
+                    stats["node_labels"][label] = count
+                    
+            except Exception:
+                stats["node_labels"] = {"Unknown": total_nodes}
+            
+            # Try to get relationship types (fallback if not available)
+            try:
+                rel_type_result = session.run("CALL db.relationshipTypes() YIELD relationshipType RETURN collect(relationshipType) as types")
+                rel_types = rel_type_result.single()["types"]
+                stats["relationship_types"] = {rel_type: 0 for rel_type in rel_types}  # Placeholder counts
+                
+                # Get actual counts for each relationship type
+                for rel_type in rel_types:
+                    count_result = session.run(f"MATCH ()-[r:{rel_type}]->() RETURN count(r) as count")
+                    count = count_result.single()["count"]
+                    stats["relationship_types"][rel_type] = count
+                    
+            except Exception:
+                stats["relationship_types"] = {"Unknown": total_relationships}
         
         success_message = (
             f"📊 Database Statistics:\n"
