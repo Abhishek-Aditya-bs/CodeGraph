@@ -74,7 +74,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 CHUNK_SIZE=500
 CHUNK_OVERLAP=50
 EMBEDDING_MODEL=text-embedding-3-large
-LLM_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-4o
 EOF
 ```
 

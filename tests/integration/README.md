@@ -86,7 +86,7 @@ This directory contains comprehensive integration tests for the complete CodeGra
 - ✅ Index creation and management
 
 **Graph Builder**:
-- ✅ LLM-based entity extraction (GPT-4o-mini)
+- ✅ LLM-based entity extraction (GPT-4o)
 - ✅ Vector embeddings (text-embedding-3-large)
 - ✅ Hybrid GraphRAG system creation
 - ✅ Bridge relationships between layers
@@ -170,7 +170,7 @@ python -m pytest tests/integration/test_full_system.py -v -m "not api_cost"
 ## Key Features Validated
 
 ### 🧠 AI Integration
-- **LLM Knowledge Graph Generation**: GPT-4o-mini for entity extraction
+- **LLM Knowledge Graph Generation**: GPT-4o for entity extraction
 - **Vector Embeddings**: OpenAI text-embedding-3-large
 - **Conversational Responses**: Natural language query responses
 - **Error Handling**: Graceful API failure recovery

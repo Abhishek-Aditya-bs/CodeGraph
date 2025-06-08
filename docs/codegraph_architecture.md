@@ -50,7 +50,7 @@ Codebase Input → Validation → Chunking → Document Objects
 - `DEPENDS_ON` - Module dependencies
 
 **Implementation**:
-- Uses GPT-4o-mini for entity extraction
+- Uses GPT-4o for entity extraction
 - LangChain's `LLMGraphTransformer` for relationship mapping
 - Cypher queries for graph storage
 
