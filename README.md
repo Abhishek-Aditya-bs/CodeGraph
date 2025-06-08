@@ -75,7 +75,7 @@ EOF
 2. **Run prerequisite check and start:**
 ```bash
 ./docker/docker-prerequisite-check.sh
-cd docker && docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 3. **Access the application:**
@@ -114,7 +114,7 @@ OPENAI_API_KEY=your_openai_api_key_here
 CHUNK_SIZE=500
 CHUNK_OVERLAP=50
 EMBEDDING_MODEL=text-embedding-3-large
-LLM_MODEL=gpt-4o-mini
+LLM_MODEL=gpt-4o
 EOF
 ```
 
@@ -122,8 +122,12 @@ EOF
 ```bash
 docker run -p 7474:7474 -p 7687:7687 \
   -e NEO4J_AUTH=neo4j/password \
+  -e NEO4J_PLUGINS='["apoc"]' \
   -e NEO4J_apoc_export_file_enabled=true \
-  neo4j:5.15-community
+  -e NEO4J_apoc_import_file_enabled=true \
+  -e NEO4J_dbms_security_procedures_unrestricted='apoc.*' \
+  -e NEO4J_dbms_security_procedures_allowlist='apoc.*' \
+  neo4j:latest
 ```
 
 4. **Launch CodeGraph:**
@@ -340,17 +344,18 @@ OPENAI_API_KEY=your_openai_api_key_here
 ### Basic Operations
 ```bash
 # Start services
-cd docker && docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 
 # View logs
-docker compose logs -f codegraph
-docker compose logs -f neo4j
+docker compose -f docker/docker-compose.yml logs -f codegraph
+docker compose -f docker/docker-compose.yml logs -f neo4j
 
 # Stop services
-docker compose down
+docker compose -f docker/docker-compose.yml down
 
 # Rebuild and restart
-docker compose down && docker compose up -d --build
+docker compose -f docker/docker-compose.yml down
+docker compose -f docker/docker-compose.yml up -d --build
 ```
 
 ### Public Deployment (EC2/VPS)

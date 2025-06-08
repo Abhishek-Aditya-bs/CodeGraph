@@ -149,17 +149,31 @@ def sync_session_state_with_database():
                 driver = connection.get_driver()
                 if driver:
                     with driver.session() as session:
-                        # Check for CodeChunk nodes
-                        chunk_result = session.run("MATCH (c:CodeChunk) RETURN count(c) as count LIMIT 1")
-                        chunk_count = chunk_result.single()["count"]
+                        # Check for CodeChunk nodes (safely handle case where they don't exist)
+                        try:
+                            chunk_result = session.run("MATCH (c:CodeChunk) RETURN count(c) as count LIMIT 1")
+                            chunk_count = chunk_result.single()["count"]
+                        except Exception:
+                            chunk_count = 0
                         
-                        # Check for knowledge graph entities (non-CodeChunk nodes)
-                        kg_result = session.run("MATCH (n) WHERE NOT n:CodeChunk RETURN count(n) as count LIMIT 1")
-                        kg_count = kg_result.single()["count"]
+                        # Check for knowledge graph entities (safely handle case where CodeChunk label doesn't exist)
+                        try:
+                            kg_result = session.run("MATCH (n) WHERE NOT n:CodeChunk RETURN count(n) as count LIMIT 1")
+                            kg_count = kg_result.single()["count"]
+                        except Exception:
+                            # If CodeChunk label doesn't exist, count all nodes
+                            try:
+                                kg_result = session.run("MATCH (n) RETURN count(n) as count LIMIT 1")
+                                kg_count = kg_result.single()["count"]
+                            except Exception:
+                                kg_count = 0
                         
                         # Update session state based on what we find
+                        logger.info(f"Sync check: {chunk_count} CodeChunks, {kg_count} KG entities, vector_index={has_vector_index}")
+                        
                         if chunk_count > 0:
                             st.session_state.codebase_ingested = True
+                            st.session_state.vector_index_created = True  # CodeChunks exist means vector index was created
                             
                         if kg_count > 0:
                             st.session_state.knowledge_graph_created = True

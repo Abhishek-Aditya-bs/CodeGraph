@@ -1,7 +1,7 @@
 services:
   # Neo4j Database
   neo4j:
-    image: neo4j:5.15-community
+    image: neo4j:latest
     container_name: codegraph-neo4j
     restart: unless-stopped
     ports:

@@ -37,20 +37,29 @@ def get_vector_index_stats(driver: Driver) -> Tuple[bool, str]:
     """
     try:
         with driver.session() as session:
-            # Count CodeChunk nodes
-            chunk_result = session.run("MATCH (c:CodeChunk) RETURN count(c) as chunk_count")
-            chunk_record = chunk_result.single()
-            chunk_count = chunk_record["chunk_count"] if chunk_record else 0
+            # Count CodeChunk nodes (safely handle case where they don't exist)
+            try:
+                chunk_result = session.run("MATCH (c:CodeChunk) RETURN count(c) as chunk_count")
+                chunk_record = chunk_result.single()
+                chunk_count = chunk_record["chunk_count"] if chunk_record else 0
+            except Exception:
+                chunk_count = 0
             
             # Count File nodes
-            file_result = session.run("MATCH (f:File) RETURN count(f) as file_count")
-            file_record = file_result.single()
-            file_count = file_record["file_count"] if file_record else 0
+            try:
+                file_result = session.run("MATCH (f:File) RETURN count(f) as file_count")
+                file_record = file_result.single()
+                file_count = file_record["file_count"] if file_record else 0
+            except Exception:
+                file_count = 0
             
-            # Count CONTAINS_CHUNK relationships
-            rel_result = session.run("MATCH ()-[r:CONTAINS_CHUNK]->() RETURN count(r) as rel_count")
-            rel_record = rel_result.single()
-            rel_count = rel_record["rel_count"] if rel_record else 0
+            # Count CONTAINS_CHUNK relationships (safely handle case where they don't exist)
+            try:
+                rel_result = session.run("MATCH ()-[r:CONTAINS_CHUNK]->() RETURN count(r) as rel_count")
+                rel_record = rel_result.single()
+                rel_count = rel_record["rel_count"] if rel_record else 0
+            except Exception:
+                rel_count = 0
             
             # Check if vector index exists
             try:

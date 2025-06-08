@@ -78,5 +78,5 @@ cloned_repos/
 .pytest_cache/
 .coverage
 
-# Docker
-.dockerignore 
+# Docker (keep .dockerignore in git for build consistency)
+# .dockerignore - removed from gitignore as it should be version controlled 

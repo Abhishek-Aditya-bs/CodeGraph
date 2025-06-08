@@ -11,6 +11,11 @@ streamlit>=1.29.0
 # LLM and AI
 langchain>=0.3.0
 langchain-openai>=0.2.0
+langchain-experimental>=0.3.0
+langchain-community>=0.3.0
+langchain-neo4j>=0.3.0
+langchain-core>=0.3.0
+langchain-text-splitters>=0.3.0
 openai>=1.50.0
 
 # Git Integration
