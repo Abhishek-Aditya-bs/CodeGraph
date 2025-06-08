@@ -399,7 +399,7 @@ git clone <repository-url>
 cd CodeGraph
 # Create .env file with your configuration
 ./docker/docker-prerequisite-check.sh
-cd docker && docker compose up -d
+docker compose -f docker/docker-compose.yml up -d
 ```
 
 3. **Access via public IP:** http://YOUR_SERVER_IP:8501
