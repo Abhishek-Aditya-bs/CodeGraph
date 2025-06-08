@@ -206,4 +206,28 @@ def create_constraints_and_indexes(driver: Driver) -> Tuple[bool, str]:
     except Exception as e:
         error_msg = f"❌ Error creating constraints and indexes: {str(e)}"
         logger.error(error_msg)
+        return False, error_msg
+
+
+def clear_knowledge_graph(driver, confirm: bool = False) -> Tuple[bool, str]:
+    """
+    Clear the knowledge graph from Neo4j
+    WARNING: This will delete all nodes and relationships!
+    
+    Args:
+        driver: Neo4j driver instance
+        confirm: Must be True to actually perform the deletion
+        
+    Returns:
+        Tuple[bool, str]: (success, message)
+    """
+    try:
+        if not driver:
+            return False, "❌ No driver provided."
+        
+        return clear_database(driver, confirm=confirm)
+        
+    except Exception as e:
+        error_msg = f"❌ Error clearing knowledge graph: {str(e)}"
+        logger.error(error_msg)
         return False, error_msg 

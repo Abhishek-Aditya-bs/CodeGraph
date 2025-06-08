@@ -3,8 +3,9 @@
 
 import logging
 from typing import Optional, List, Dict, Tuple, Any
-from neo4j import GraphDatabase, Driver
+from neo4j import Driver
 from .config import Config
+from .database import get_neo4j_connection
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -15,45 +16,48 @@ class QueryProcessor:
     """Handles GraphRAG query processing and response generation using hybrid approach"""
     
     def __init__(self):
-        """Initialize QueryProcessor with Neo4j connection"""
+        """Initialize QueryProcessor with singleton database connection"""
         self.config = Config()
-        self.driver: Optional[Driver] = None
-        self.is_connected = False
+        # Use singleton connection instead of creating our own
+        self.connection = get_neo4j_connection()
         self.embeddings = None
         
-    def connect_to_neo4j(self) -> Tuple[bool, str]:
+    @property
+    def driver(self) -> Optional[Driver]:
+        """Get the driver from singleton connection"""
+        return self.connection.get_driver()
+    
+    @property
+    def is_connected(self) -> bool:
+        """Check if singleton connection is active"""
+        return self.connection.is_connected
+    
+    def ensure_connection(self) -> Tuple[bool, str]:
         """
-        Establish connection to Neo4j database
+        Ensure database connection is active and healthy
         
         Returns:
             Tuple[bool, str]: (success, message)
         """
         try:
-            if not self.config.validate_config():
-                return False, "❌ Invalid Neo4j configuration. Please check your .env file."
+            # First check if connection object thinks it's connected
+            if not self.connection.is_connected:
+                # Try to reconnect
+                return self.connection.connect()
             
-            logger.info(f"🔗 Connecting QueryProcessor to Neo4j at {self.config.NEO4J_URI}")
+            # Test the actual connection
+            test_success, test_message = self.connection.test_connection()
+            if not test_success:
+                # Connection is stale, try to reconnect
+                logger.warning("🔄 Connection appears stale, attempting to reconnect...")
+                return self.connection.connect()
             
-            self.driver = GraphDatabase.driver(
-                self.config.NEO4J_URI,
-                auth=(self.config.NEO4J_USERNAME, self.config.NEO4J_PASSWORD),
-                max_connection_lifetime=3600,
-                max_connection_pool_size=50,
-                connection_acquisition_timeout=60
-            )
+            return True, "✅ Connection is healthy"
             
-            # Test connection
-            with self.driver.session() as session:
-                result = session.run("RETURN 1 as test")
-                if result.single()["test"] == 1:
-                    self.is_connected = True
-                    logger.info("✅ QueryProcessor connected to Neo4j successfully")
-                    return True, "✅ QueryProcessor connected to Neo4j successfully"
-                else:
-                    return False, "❌ Connection test failed"
-                    
         except Exception as e:
-            return False, f"❌ Error connecting to Neo4j: {str(e)}"
+            return False, f"❌ Connection validation failed: {str(e)}"
+        
+
     
     def setup_retrievers(self) -> Tuple[bool, str]:
         """
@@ -63,8 +67,10 @@ class QueryProcessor:
             Tuple[bool, str]: (success, message)
         """
         try:
-            if not self.is_connected:
-                return False, "❌ Not connected to Neo4j. Please connect first."
+            # Ensure we have a healthy connection before proceeding
+            connection_success, connection_message = self.ensure_connection()
+            if not connection_success:
+                return False, f"❌ Database connection failed: {connection_message}"
             
             # Initialize OpenAI embeddings
             from langchain_openai import OpenAIEmbeddings
@@ -80,7 +86,7 @@ class QueryProcessor:
                 index_exists = len(list(index_result)) > 0
                 
                 if not index_exists:
-                    return False, "❌ Vector index 'code_chunks_vector_index' not found. Please create unified GraphRAG system first."
+                    return False, "❌ Vector index 'code_chunks_vector_index' not found. Please create GraphRAG system first."
             
             logger.info("✅ QueryProcessor retrievers set up successfully")
             return True, "✅ QueryProcessor retrievers set up successfully"
@@ -155,6 +161,12 @@ class QueryProcessor:
             Tuple[bool, List[Dict]]: (success, results)
         """
         try:
+            # Ensure connection is healthy
+            connection_success, connection_message = self.ensure_connection()
+            if not connection_success:
+                logger.error(f"Connection failed during vector search: {connection_message}")
+                return False, []
+                
             if not self.embeddings:
                 return False, []
             
@@ -288,7 +300,7 @@ class QueryProcessor:
     
     def _generate_response(self, query: str, vector_results: List[Dict], graph_context: Dict) -> Tuple[bool, str]:
         """
-        Generate a comprehensive response using vector results and graph context
+        Generate a natural, conversational response using LLM
         
         Args:
             query: Original user query
@@ -296,88 +308,32 @@ class QueryProcessor:
             graph_context: Graph traversal context
             
         Returns:
-            Tuple[bool, str]: (success, response)
+            Tuple[bool, str]: (success, conversational_response)
         """
         try:
             if not vector_results:
-                return True, "No relevant code found for your query."
+                return True, "I couldn't find any relevant code for your query. Could you try rephrasing your question or being more specific about what you're looking for?"
             
-            # Build response sections
-            response_parts = []
+            # Use utility functions for LLM processing
+            from app.utilities.llm_utils import (
+                prepare_context_for_llm, 
+                generate_conversational_response, 
+                generate_fallback_response
+            )
             
-            # Summary (without repeating the query)
-            response_parts.append(f"Found {len(vector_results)} relevant code chunks across {len(set(r['file_path'] for r in vector_results))} files.")
+            # Prepare context for LLM
+            context_data = prepare_context_for_llm(query, vector_results, graph_context)
             
-            # Most relevant code chunks
-            response_parts.append("\n### Most Relevant Code:")
-            for i, result in enumerate(vector_results[:3], 1):  # Top 3 results
-                file_name = result['file_path'].split('/')[-1] if '/' in result['file_path'] else result['file_path']
-                response_parts.append(f"\n**{i}. {file_name} (Lines {result['start_line']}-{result['end_line']}, Similarity: {result['similarity_score']:.3f})**")
-                response_parts.append(f"```{result['language']}")
-                # Show more of the code content
-                code_text = result['text']
-                if len(code_text) > 800:
-                    # Find a good breaking point (end of line)
-                    break_point = code_text.rfind('\n', 0, 800)
-                    if break_point > 600:  # If we found a reasonable break point
-                        code_text = code_text[:break_point] + "\n... (truncated)"
-                    else:
-                        code_text = code_text[:800] + "..."
-                response_parts.append(code_text)
-                response_parts.append("```")
+            # Generate conversational response using LLM
+            response_success, conversational_response = generate_conversational_response(context_data, self.config.OPENAI_API_KEY)
             
-            # Graph context (if available)
-            if graph_context.get('entities'):
-                response_parts.append("\n### Related Code Entities:")
-                entity_types = {}
-                for entity in graph_context['entities']:
-                    entity_type = entity['type']
-                    if entity_type not in entity_types:
-                        entity_types[entity_type] = []
-                    entity_types[entity_type].append(entity['id'])
-                
-                for entity_type, entity_ids in entity_types.items():
-                    response_parts.append(f"- **{entity_type}s**: {', '.join(entity_ids[:5])}")
+            if not response_success:
+                # Fallback to basic response if LLM fails
+                return True, generate_fallback_response(vector_results, graph_context)
             
-            if graph_context.get('relationships'):
-                response_parts.append("\n### Code Relationships:")
-                rel_types = {}
-                for rel in graph_context['relationships']:
-                    rel_type = rel['relationship']
-                    if rel_type not in rel_types:
-                        rel_types[rel_type] = []
-                    rel_types[rel_type].append(f"{rel['source']} → {rel['target']}")
-                
-                for rel_type, examples in rel_types.items():
-                    response_parts.append(f"- **{rel_type}**: {', '.join(examples[:3])}")
-            
-            # File summary
-            if graph_context.get('files'):
-                response_parts.append("\n### Files Involved:")
-                for file_info in graph_context['files'][:5]:  # Top 5 files
-                    response_parts.append(f"- **{file_info['name']}** ({file_info['language']}) - {file_info['entity_count']} entities")
-            
-            response_text = "\n".join(response_parts)
-            return True, response_text
+            return True, conversational_response
             
         except Exception as e:
-            return False, f"Error generating response: {str(e)}"
-    
-    def close_connection(self) -> None:
-        """Close the Neo4j connection"""
-        try:
-            if self.driver:
-                self.driver.close()
-                self.driver = None
-                self.is_connected = False
-                logger.info("🔌 QueryProcessor Neo4j connection closed")
-        except Exception as e:
-            logger.error(f"Error closing QueryProcessor connection: {str(e)}")
-    
-    def __enter__(self):
-        """Context manager entry"""
-        return self
-    
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit - automatically close connection"""
-        self.close_connection() 
+            logger.error(f"Error generating conversational response: {str(e)}")
+            # Fallback response
+            return True, f"I found {len(vector_results)} relevant code chunks, but had trouble generating a detailed explanation. The most relevant file is {vector_results[0]['file_path'].split('/')[-1]} if you'd like to explore it."

@@ -26,7 +26,21 @@ from .neo4j_utils import (
     check_neo4j_health,
     clear_database,
     get_database_statistics,
-    create_constraints_and_indexes
+    create_constraints_and_indexes,
+    clear_knowledge_graph
+)
+
+from .graph_stats_utils import (
+    get_graph_creation_stats,
+    get_vector_index_stats,
+    get_graphrag_system_stats
+)
+
+from .llm_utils import (
+    prepare_context_for_llm,
+    create_conversational_prompt,
+    generate_fallback_response,
+    generate_conversational_response
 )
 
 __all__ = [
@@ -52,5 +66,17 @@ __all__ = [
     'check_neo4j_health',
     'clear_database',
     'get_database_statistics',
-    'create_constraints_and_indexes'
+    'create_constraints_and_indexes',
+    'clear_knowledge_graph',
+    
+    # Graph statistics utilities
+    'get_graph_creation_stats',
+    'get_vector_index_stats',
+    'get_graphrag_system_stats',
+    
+    # LLM utilities
+    'prepare_context_for_llm',
+    'create_conversational_prompt',
+    'generate_fallback_response',
+    'generate_conversational_response'
 ] 
