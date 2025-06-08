@@ -370,6 +370,21 @@ def test_logger():
     
     return logger
 
+# Java patterns path fixture
+@pytest.fixture(scope="session")
+def java_patterns_path():
+    """Path to Java design patterns repository for testing"""
+    patterns_path = Path("cloned_repos/java-design-patterns")
+    
+    if not patterns_path.exists():
+        pytest.skip(
+            "Java design patterns repository not found. "
+            "Please clone https://github.com/iluwatar/java-design-patterns "
+            "into cloned_repos/java-design-patterns for these tests to run."
+        )
+    
+    return str(patterns_path)
+
 # Environment info fixture
 @pytest.fixture(scope="session")
 def test_environment_info():

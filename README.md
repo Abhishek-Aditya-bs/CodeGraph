@@ -11,6 +11,12 @@ CodeGraph transforms your codebase into an intelligent knowledge system by:
 - 🎨 **Beautiful UI**: Modern Streamlit interface with real-time feedback and intuitive workflow
 - 🗄️ **Smart Database Management**: Persistent data with intelligent session state synchronization
 
+## 🎬 Demo
+
+![CodeGraph Demo](./assets/CodeGraphDemo.gif)
+
+*Watch CodeGraph in action: from codebase ingestion to intelligent querying*
+
 ## ✨ Key Features
 
 ### 🎨 Beautiful Streamlit Interface
@@ -29,7 +35,7 @@ CodeGraph transforms your codebase into an intelligent knowledge system by:
 ### 🔄 Complete Workflow
 1. **📥 Input**: GitHub repositories or local folders with validation
 2. **🔄 Ingestion**: Configurable code parsing with progress tracking
-3. **�� Knowledge Graph**: Configurable LLM-powered entity extraction
+3. **🧠 Knowledge Graph**: Configurable LLM-powered entity extraction
 4. **🔍 Vector Index**: OpenAI embeddings with text-embedding-3-large
 5. **💬 Query**: Natural language queries with rich context display
 6. **🗄️ Database**: Management tools with statistics and cleanup options
@@ -303,6 +309,26 @@ export SKIP_INTEGRATION_TESTS=true
 export SKIP_API_COST_TESTS=true
 export SKIP_SLOW_TESTS=true
 ```
+
+### Test Data Setup (Optional)
+
+For running the complete test suite including API cost tests, you need to set up the Java design patterns repository:
+
+```bash
+# Create cloned_repos directory if it doesn't exist
+mkdir -p cloned_repos
+
+# Clone the Java design patterns repository
+cd cloned_repos
+git clone https://github.com/iluwatar/java-design-patterns.git
+cd ..
+
+# Now you can run all tests including API cost tests
+export SKIP_API_COST_TESTS=false
+python -m pytest tests/ -v
+```
+
+**Note**: Without this setup, API cost tests will be automatically skipped with a helpful message. The core functionality tests will still run and pass.
 
 ## ⚙️ Configuration
 
